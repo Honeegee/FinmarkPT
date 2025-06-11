@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js build output
+.next/
+out/
+
+# Environment files
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+*.tsbuildinfo
+
+# Miscellaneous
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development
+.vscode
+.idea
+
+# OS generated files
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Development scripts
+install-deps.sh
+
+# Lock files (we'll copy package*.json specifically)
+yarn.lock
+bun.lock
+
+# Build artifacts
+dist
+build

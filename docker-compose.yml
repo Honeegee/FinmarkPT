@@ -1,0 +1,70 @@
+services:
+  postgresql:
+    image: postgres:15
+    container_name: finmark_postgresql
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    environment:
+      POSTGRES_DB: finmark_ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    networks:
+      - finmark_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  user-service:
+    build: ./user-service
+    container_name: finmark_user_service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgresql
+      - DB_PORT=5432
+      - DB_NAME=finmark_ecommerce
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - JWT_SECRET=finmark-super-secret-key-2024
+      - JWT_REFRESH_SECRET=finmark-refresh-secret-key-2024
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks:
+      - finmark_network
+
+  finmark-ecommerce:
+    build: ./finmark-ecommerce
+    container_name: finmark_nextjs_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgresql
+      - DB_PORT=5432
+      - DB_NAME=finmark_ecommerce
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - JWT_SECRET=finmark-super-secret-key-2024
+      - JWT_REFRESH_SECRET=finmark-refresh-secret-key-2024
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks:
+      - finmark_network
+
+volumes:
+  postgresql_data:
+
+networks:
+  finmark_network:
+    driver: bridge
