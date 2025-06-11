@@ -38,7 +38,115 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Mock authentication logic
+      // Comprehensive input validation with null checks
+      if (email === null) {
+        setError('Email cannot be null. Please enter a valid email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (email === undefined) {
+        setError('Email is required. Please enter your email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (password === null) {
+        setError('Password cannot be null. Please enter your password.');
+        setLoading(false);
+        return;
+      }
+
+      if (password === undefined) {
+        setError('Password is required. Please enter your password.');
+        setLoading(false);
+        return;
+      }
+
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        setLoading(false);
+        return;
+      }
+
+      if (typeof email !== 'string') {
+        setError(`Email must be text, not ${typeof email}. Please enter a valid email.`);
+        setLoading(false);
+        return;
+      }
+
+      if (typeof password !== 'string') {
+        setError(`Password must be text, not ${typeof password}. Please enter a valid password.`);
+        setLoading(false);
+        return;
+      }
+
+      if (!email.trim() || !password.trim()) {
+        setError('Email and password cannot be empty or contain only spaces');
+        setLoading(false);
+        return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setError('Please enter a valid email address (example: user@domain.com)');
+        setLoading(false);
+        return;
+      }
+
+      // Try API login first
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password: password,
+            twoFactorCode: show2FA && !useBackupCode ? twoFactorCode : undefined,
+            backupCode: show2FA && useBackupCode ? backupCode : undefined
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Store tokens and user data
+          localStorage.setItem('token', data.tokens.accessToken);
+          localStorage.setItem('refreshToken', data.tokens.refreshToken);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          window.location.href = '/dashboard';
+          return;
+        } else {
+          // Handle API errors
+          if (data.code === 'VALIDATION_ERROR' && data.details) {
+            const errorMessages: string[] = [];
+            if (data.details.email && Array.isArray(data.details.email)) {
+              errorMessages.push(...data.details.email);
+            }
+            if (data.details.password && Array.isArray(data.details.password)) {
+              errorMessages.push(...data.details.password);
+            }
+            if (data.details.general && Array.isArray(data.details.general)) {
+              errorMessages.push(...data.details.general);
+            }
+            setError(errorMessages.join(' '));
+            setLoading(false);
+            return;
+          } else if (data.error) {
+            setError(data.details || data.error);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (apiError) {
+        console.warn('API login failed, falling back to demo login:', apiError);
+      }
+
+      // Fallback to demo authentication logic
       let isValidCredentials = false;
       let userForAuth: User | null = null;
       
@@ -63,18 +171,24 @@ export default function LoginPage() {
         };
       } else {
         // Check registered users
-        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-        const foundUser = registeredUsers.find(user => user.email === email && user.password === password);
-        
-        if (foundUser) {
-          isValidCredentials = true;
-          userForAuth = {
-            id: foundUser.id,
-            email: foundUser.email,
-            firstName: foundUser.firstName,
-            lastName: foundUser.lastName,
-            role: foundUser.role
-          };
+        try {
+          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          const foundUser = registeredUsers.find(user =>
+            user.email === email.trim().toLowerCase() && user.password === password
+          );
+          
+          if (foundUser) {
+            isValidCredentials = true;
+            userForAuth = {
+              id: foundUser.id,
+              email: foundUser.email,
+              firstName: foundUser.firstName,
+              lastName: foundUser.lastName,
+              role: foundUser.role
+            };
+          }
+        } catch (storageError) {
+          console.warn('Error reading from localStorage:', storageError);
         }
       }
       
@@ -95,12 +209,12 @@ export default function LoginPage() {
       
       if (show2FA && is2FAEnabled) {
         // Validate 2FA code (accept any 6-digit code for demo)
-        if (!useBackupCode && twoFactorCode.length !== 6) {
+        if (!useBackupCode && (!twoFactorCode || twoFactorCode.length !== 6)) {
           setError('Please enter a valid 6-digit code');
           return;
         }
         
-        if (useBackupCode && !backupCode) {
+        if (useBackupCode && (!backupCode || backupCode.trim().length === 0)) {
           setError('Please enter a backup code');
           return;
         }

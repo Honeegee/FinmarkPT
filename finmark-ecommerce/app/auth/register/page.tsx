@@ -58,43 +58,273 @@ export default function RegisterPage() {
     setError('');
     setSuccess('');
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
+    try {
+      // Comprehensive null/undefined checks
+      if (formData.firstName === null) {
+        setError('First name cannot be null. Please enter your first name.');
+        setLoading(false);
+        return;
+      }
 
-    if (!Object.values(passwordValidation).every(Boolean)) {
-      setError('Password does not meet security requirements');
-      setLoading(false);
-      return;
-    }
+      if (formData.firstName === undefined) {
+        setError('First name is required. Please enter your first name.');
+        setLoading(false);
+        return;
+      }
 
-    // Simulate registration process
-    setTimeout(() => {
-      // Store registered user data in localStorage (in a real app, this would be sent to your API)
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const newUser = {
-        id: Date.now().toString(), // Simple ID generation
-        email: formData.email,
-        password: formData.password, // In a real app, this would be hashed
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: 'customer'
+      if (formData.lastName === null) {
+        setError('Last name cannot be null. Please enter your last name.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.lastName === undefined) {
+        setError('Last name is required. Please enter your last name.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.email === null) {
+        setError('Email cannot be null. Please enter a valid email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.email === undefined) {
+        setError('Email is required. Please enter your email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.password === null) {
+        setError('Password cannot be null. Please create a password.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.password === undefined) {
+        setError('Password is required. Please create a password.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.confirmPassword === null) {
+        setError('Password confirmation cannot be null. Please confirm your password.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.confirmPassword === undefined) {
+        setError('Password confirmation is required. Please confirm your password.');
+        setLoading(false);
+        return;
+      }
+
+      // Type validation
+      if (typeof formData.firstName !== 'string') {
+        setError(`First name must be text, not ${typeof formData.firstName}. Please enter a valid name.`);
+        setLoading(false);
+        return;
+      }
+
+      if (typeof formData.lastName !== 'string') {
+        setError(`Last name must be text, not ${typeof formData.lastName}. Please enter a valid name.`);
+        setLoading(false);
+        return;
+      }
+
+      if (typeof formData.email !== 'string') {
+        setError(`Email must be text, not ${typeof formData.email}. Please enter a valid email.`);
+        setLoading(false);
+        return;
+      }
+
+      if (typeof formData.password !== 'string') {
+        setError(`Password must be text, not ${typeof formData.password}. Please enter a valid password.`);
+        setLoading(false);
+        return;
+      }
+
+      // Client-side validation with sanitized data
+      const trimmedData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
       };
+
+      // Check required fields
+      if (!trimmedData.firstName || !trimmedData.lastName || !trimmedData.email || !trimmedData.password) {
+        setError('All fields are required and cannot be empty');
+        setLoading(false);
+        return;
+      }
+
+      // Empty/whitespace validation
+      if (trimmedData.firstName.length === 0) {
+        setError('First name cannot be empty or contain only spaces');
+        setLoading(false);
+        return;
+      }
+
+      if (trimmedData.lastName.length === 0) {
+        setError('Last name cannot be empty or contain only spaces');
+        setLoading(false);
+        return;
+      }
+
+      if (trimmedData.email.length === 0) {
+        setError('Email cannot be empty or contain only spaces');
+        setLoading(false);
+        return;
+      }
+
+      // Name validation
+      if (trimmedData.firstName.length < 2) {
+        setError('First name must be at least 2 characters long');
+        setLoading(false);
+        return;
+      }
+
+      if (trimmedData.lastName.length < 2) {
+        setError('Last name must be at least 2 characters long');
+        setLoading(false);
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedData.email)) {
+        setError('Please enter a valid email address (example: user@domain.com)');
+        setLoading(false);
+        return;
+      }
+
+      // Password validation
+      if (trimmedData.password !== trimmedData.confirmPassword) {
+        setError('Passwords do not match');
+        setLoading(false);
+        return;
+      }
+
+      if (!Object.values(passwordValidation).every(Boolean)) {
+        setError('Password does not meet security requirements');
+        setLoading(false);
+        return;
+      }
+
+      // Try API registration first
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: trimmedData.firstName,
+            lastName: trimmedData.lastName,
+            email: trimmedData.email,
+            password: trimmedData.password
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setSuccess(`Account created successfully! Welcome ${data.user.firstName} ${data.user.lastName} to Finmark.`);
+          
+          // Store tokens and user data
+          localStorage.setItem('token', data.tokens.accessToken);
+          localStorage.setItem('refreshToken', data.tokens.refreshToken);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Redirect to login page after successful registration
+          setTimeout(() => {
+            router.push('/auth/login');
+          }, 2000);
+          return;
+        } else {
+          // Handle API errors
+          if (data.code === 'VALIDATION_ERROR' && data.details) {
+            const errorMessages: string[] = [];
+            if (data.details.firstName && Array.isArray(data.details.firstName)) {
+              errorMessages.push(...data.details.firstName);
+            }
+            if (data.details.lastName && Array.isArray(data.details.lastName)) {
+              errorMessages.push(...data.details.lastName);
+            }
+            if (data.details.email && Array.isArray(data.details.email)) {
+              errorMessages.push(...data.details.email);
+            }
+            if (data.details.password && Array.isArray(data.details.password)) {
+              errorMessages.push(...data.details.password);
+            }
+            if (data.details.general && Array.isArray(data.details.general)) {
+              errorMessages.push(...data.details.general);
+            }
+            setError(errorMessages.join(' '));
+            setLoading(false);
+            return;
+          } else if (data.code === 'USER_EXISTS' || data.code === 'DUPLICATE_USER') {
+            setError('An account with this email address already exists. Please use a different email or try logging in.');
+            setLoading(false);
+            return;
+          } else if (data.error) {
+            setError(data.details || data.error);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (apiError) {
+        console.warn('API registration failed, falling back to local storage:', apiError);
+      }
+
+      // Fallback to localStorage registration (for demo purposes)
+      try {
+        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        
+        // Check if user already exists
+        const existingUser = registeredUsers.find(user =>
+          user.email.toLowerCase() === trimmedData.email.toLowerCase()
+        );
+        
+        if (existingUser) {
+          setError('An account with this email address already exists. Please use a different email or try logging in.');
+          setLoading(false);
+          return;
+        }
+        
+        const newUser = {
+          id: Date.now().toString(), // Simple ID generation
+          email: trimmedData.email.toLowerCase(),
+          password: trimmedData.password, // In a real app, this would be hashed
+          firstName: trimmedData.firstName,
+          lastName: trimmedData.lastName,
+          role: 'customer',
+          createdAt: new Date().toISOString()
+        };
+        
+        registeredUsers.push(newUser);
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        setSuccess(`Account created successfully! Welcome ${trimmedData.firstName} ${trimmedData.lastName} to Finmark.`);
+        
+        // Redirect to login page after successful registration
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } catch (storageError) {
+        console.error('LocalStorage error:', storageError);
+        setError('Unable to create account. Please try again.');
+      }
       
-      registeredUsers.push(newUser);
-      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-      
-      setSuccess(`Account created successfully! Welcome ${formData.firstName} ${formData.lastName} to Finmark.`);
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
-      
-      // Redirect to login page after successful registration
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 2000);
-    }, 2000);
+    }
   };
 
   return (

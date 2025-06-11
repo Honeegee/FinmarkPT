@@ -4,6 +4,16 @@ const User = require('../models/User');
 const TwoFactorAuth = require('../services/twoFactorAuth');
 const SecurityService = require('../services/securityService');
 const { logLoginAttempt } = require('../middleware/rateLimiter');
+const {
+  validateRequestBody,
+  sanitizeInput,
+  validateEmail,
+  validateName,
+  getClientIP,
+  formatErrorResponse,
+  handleDatabaseError,
+  asyncErrorHandler
+} = require('../utils/errorHandler');
 
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
@@ -21,93 +31,144 @@ const generateTokens = (userId) => {
   return { accessToken, refreshToken };
 };
 
-exports.register = async (req, res) => {
+exports.register = asyncErrorHandler(async (req, res) => {
+  // Validate request body structure
+  const bodyValidation = validateRequestBody(req.body, ['email', 'password', 'firstName', 'lastName']);
+  if (!bodyValidation.isValid) {
+    const error = formatErrorResponse(bodyValidation.errors.join(', '), 'VALIDATION_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  // Sanitize input data
+  const sanitizedData = sanitizeInput(req.body);
+  const { email, password, firstName, lastName } = sanitizedData;
+
+  // Enhanced email validation
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.isValid) {
+    const error = formatErrorResponse(emailValidation.errors.join(', '), 'EMAIL_VALIDATION_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  // Enhanced name validation
+  const firstNameValidation = validateName(firstName, 'First name');
+  if (!firstNameValidation.isValid) {
+    const error = formatErrorResponse(firstNameValidation.errors.join(', '), 'FIRST_NAME_VALIDATION_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  const lastNameValidation = validateName(lastName, 'Last name');
+  if (!lastNameValidation.isValid) {
+    const error = formatErrorResponse(lastNameValidation.errors.join(', '), 'LAST_NAME_VALIDATION_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  // Enhanced password validation
+  if (!password || typeof password !== 'string') {
+    const error = formatErrorResponse('Password must be a valid string', 'PASSWORD_TYPE_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  if (password.length < 8) {
+    const error = formatErrorResponse('Password must be at least 8 characters long', 'PASSWORD_LENGTH_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
+  if (password.length > 128) {
+    const error = formatErrorResponse('Password is too long (maximum 128 characters)', 'PASSWORD_LENGTH_ERROR', 400);
+    return res.status(error.statusCode).json(error.response);
+  }
+
   try {
-    const { email, password, firstName, lastName } = req.body;
-
-    // Validation
-    if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ 
-        message: 'All fields are required',
-        required: ['email', 'password', 'firstName', 'lastName']
-      });
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: 'Invalid email format' });
-    }
-
-    // Password strength validation
-    if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-    }
-
     // Check if user exists
-    const existingUser = await User.findByEmail(email);
+    const existingUser = await User.findByEmail(emailValidation.sanitized);
     if (existingUser) {
       // Log security event for attempted duplicate registration
       await SecurityService.logSecurityEvent(
-        null, 
-        'duplicate_registration_attempt', 
-        req.ip, 
-        req.get('User-Agent'),
-        { email: email }
+        null,
+        'duplicate_registration_attempt',
+        getClientIP(req),
+        req.get('User-Agent') || 'unknown',
+        { email: emailValidation.sanitized }
       );
-      return res.status(400).json({ message: 'User already exists' });
+      const error = formatErrorResponse('User already exists with this email address', 'USER_EXISTS', 409);
+      return res.status(error.statusCode).json(error.response);
     }
 
-    // Create user
+    // Create user with sanitized data
     const user = await User.create({
-      email,
+      email: emailValidation.sanitized,
       password,
-      firstName,
-      lastName
+      firstName: firstNameValidation.sanitized,
+      lastName: lastNameValidation.sanitized
     });
 
-    // Generate tokens
-    const tokens = generateTokens(user.id);
+    // Generate tokens with error handling
+    let tokens;
+    try {
+      tokens = generateTokens(user.id);
+    } catch (tokenError) {
+      console.error('Token generation error:', tokenError);
+      const error = formatErrorResponse('Failed to generate authentication tokens', 'TOKEN_GENERATION_ERROR', 500);
+      return res.status(error.statusCode).json(error.response);
+    }
 
-    // Save refresh token
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    await User.saveRefreshToken(
-      user.id, 
-      tokens.refreshToken, 
-      expiresAt, 
-      req.ip, 
-      req.get('User-Agent')
-    );
+    // Save refresh token with error handling
+    try {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await User.saveRefreshToken(
+        user.id,
+        tokens.refreshToken,
+        expiresAt,
+        getClientIP(req),
+        req.get('User-Agent') || 'unknown'
+      );
+    } catch (tokenSaveError) {
+      console.warn('Failed to save refresh token:', tokenSaveError);
+      // Continue with registration - this isn't critical
+    }
 
-    // Log security event
-    await SecurityService.logSecurityEvent(
-      user.id, 
-      'user_registered', 
-      req.ip, 
-      req.get('User-Agent')
-    );
+    // Log security event with error handling
+    try {
+      await SecurityService.logSecurityEvent(
+        user.id,
+        'user_registered',
+        getClientIP(req),
+        req.get('User-Agent') || 'unknown'
+      );
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+      // Continue with registration - this isn't critical
+    }
 
-    // Log successful registration attempt
-    await logLoginAttempt(email, true, req.ip, req.get('User-Agent'));
+    // Log successful registration attempt with error handling
+    try {
+      await logLoginAttempt(emailValidation.sanitized, true, getClientIP(req), req.get('User-Agent') || 'unknown');
+    } catch (logError) {
+      console.warn('Failed to log registration attempt:', logError);
+      // Continue with registration - this isn't critical
+    }
 
     res.status(201).json({
+      success: true,
       message: 'User registered successfully',
       tokens: tokens,
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        role: user.role || 'user'
       }
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Registration failed' });
+    const dbError = handleDatabaseError(error, 'user registration');
+    return res.status(dbError.statusCode).json(dbError.response);
   }
-};
+});
 
-exports.login = async (req, res) => {
+exports.login = asyncErrorHandler(async (req, res) => {
   try {
     const { email, password, twoFactorCode, backupCode } = req.body;
     const ip = req.ip;
@@ -190,41 +251,69 @@ exports.login = async (req, res) => {
       }
     }
 
-    // Detect anomalous login patterns
-    const anomalyDetection = await SecurityService.detectAnomalousLogin(user.id, ip, userAgent);
+    // Detect anomalous login patterns with error handling
+    let anomalyDetection = { isAnomalous: false, riskScore: 0, flags: [] };
+    try {
+      anomalyDetection = await SecurityService.detectAnomalousLogin(user.id, ip, userAgent);
+    } catch (anomalyError) {
+      console.warn('Error detecting anomalous login patterns:', anomalyError);
+      // Continue with login - this isn't critical
+    }
     
-    // Generate tokens
-    const tokens = generateTokens(user.id);
+    // Generate tokens with enhanced error handling
+    let tokens;
+    try {
+      tokens = generateTokens(user.id);
+    } catch (tokenError) {
+      console.error('Token generation error:', tokenError);
+      const error = formatErrorResponse('Failed to generate authentication tokens', 'TOKEN_GENERATION_ERROR', 500);
+      return res.status(error.statusCode).json(error.response);
+    }
 
-    // Save refresh token with session fingerprint
-    const sessionFingerprint = SecurityService.generateSessionFingerprint(req);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    await User.saveRefreshToken(user.id, tokens.refreshToken, expiresAt, ip, userAgent);
+    // Save refresh token with session fingerprint and error handling
+    try {
+      const sessionFingerprint = SecurityService.generateSessionFingerprint(req);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await User.saveRefreshToken(user.id, tokens.refreshToken, expiresAt, ip, userAgent);
+    } catch (tokenSaveError) {
+      console.warn('Failed to save refresh token:', tokenSaveError);
+      // Continue with login - user can still use access token
+    }
 
-    // Log successful login
-    await logLoginAttempt(email, true, ip, userAgent);
-    await SecurityService.logSecurityEvent(
-      user.id, 
-      'login', 
-      ip, 
-      userAgent,
-      { 
-        anomaly_flags: anomalyDetection.flags,
-        risk_score: anomalyDetection.riskScore,
-        session_fingerprint: sessionFingerprint
-      }
-    );
+    // Log successful login with error handling
+    try {
+      await logLoginAttempt(emailValidation.sanitized, true, ip, userAgent);
+    } catch (logError) {
+      console.warn('Failed to log login attempt:', logError);
+    }
+
+    try {
+      await SecurityService.logSecurityEvent(
+        user.id,
+        'login',
+        ip,
+        userAgent,
+        {
+          anomaly_flags: anomalyDetection.flags,
+          risk_score: anomalyDetection.riskScore,
+          session_fingerprint: SecurityService.generateSessionFingerprint(req)
+        }
+      );
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+    }
 
     // Send response with anomaly warning if needed
     const response = {
+      success: true,
       message: 'Login successful',
       tokens: tokens,
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        role: user.role || 'user'
       }
     };
 
@@ -238,10 +327,11 @@ exports.login = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Login failed' });
+    console.error('Unexpected login error:', error);
+    const dbError = handleDatabaseError(error, 'user login');
+    return res.status(dbError.statusCode).json(dbError.response);
   }
-};
+});
 
 exports.refreshToken = async (req, res) => {
   try {

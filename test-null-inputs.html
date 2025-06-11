@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinMark Null Input Validation Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .test-button {
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #dc2626;
+        }
+        .safe-button {
+            background: #10b981;
+        }
+        .safe-button:hover {
+            background: #059669;
+        }
+        .error-display {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            min-height: 20px;
+            display: none;
+        }
+        .success-display {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #059669;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        .code-display {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ FinMark Platform Null Input Validation Demo</h1>
+            <p>This demo shows how the platform gracefully handles null, undefined, and invalid inputs</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📧 Email Validation Tests</h3>
+            <p>Click the buttons below to test different problematic email inputs:</p>
+            
+            <button class="test-button" onclick="testEmail(null)">Test: email = null</button>
+            <button class="test-button" onclick="testEmail(undefined)">Test: email = undefined</button>
+            <button class="test-button" onclick="testEmail('')">Test: email = empty string</button>
+            <button class="test-button" onclick="testEmail('   ')">Test: email = whitespace</button>
+            <button class="test-button" onclick="testEmail(123)">Test: email = number</button>
+            <button class="test-button" onclick="testEmail({})">Test: email = object</button>
+            <button class="test-button safe-button" onclick="testEmail('user@example.com')">Test: Valid Email</button>
+            
+            <div id="email-error" class="error-display"></div>
+            <div id="email-success" class="success-display"></div>
+            <div id="email-code" class="code-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔑 Password Validation Tests</h3>
+            <p>Click the buttons below to test different problematic password inputs:</p>
+            
+            <button class="test-button" onclick="testPassword(null)">Test: password = null</button>
+            <button class="test-button" onclick="testPassword(undefined)">Test: password = undefined</button>
+            <button class="test-button" onclick="testPassword('')">Test: password = empty string</button>
+            <button class="test-button" onclick="testPassword('   ')">Test: password = whitespace</button>
+            <button class="test-button" onclick="testPassword(12345678)">Test: password = number</button>
+            <button class="test-button" onclick="testPassword('short')">Test: password = too short</button>
+            <button class="test-button safe-button" onclick="testPassword('ValidPassword123!')">Test: Valid Password</button>
+            
+            <div id="password-error" class="error-display"></div>
+            <div id="password-success" class="success-display"></div>
+            <div id="password-code" class="code-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👤 Name Validation Tests</h3>
+            <p>Click the buttons below to test different problematic name inputs:</p>
+            
+            <button class="test-button" onclick="testName(null)">Test: name = null</button>
+            <button class="test-button" onclick="testName(undefined)">Test: name = undefined</button>
+            <button class="test-button" onclick="testName('')">Test: name = empty string</button>
+            <button class="test-button" onclick="testName('   ')">Test: name = whitespace</button>
+            <button class="test-button" onclick="testName('A')">Test: name = too short</button>
+            <button class="test-button" onclick="testName(123)">Test: name = number</button>
+            <button class="test-button safe-button" onclick="testName('John Doe')">Test: Valid Name</button>
+            
+            <div id="name-error" class="error-display"></div>
+            <div id="name-success" class="success-display"></div>
+            <div id="name-code" class="code-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Complete Form Test</h3>
+            <p>Test a complete form submission with various problematic inputs:</p>
+            
+            <button class="test-button" onclick="testCompleteForm('null')">Test: All fields = null</button>
+            <button class="test-button" onclick="testCompleteForm('undefined')">Test: All fields = undefined</button>
+            <button class="test-button" onclick="testCompleteForm('empty')">Test: All fields = empty</button>
+            <button class="test-button" onclick="testCompleteForm('mixed')">Test: Mixed invalid types</button>
+            <button class="test-button safe-button" onclick="testCompleteForm('valid')">Test: Valid Form Data</button>
+            
+            <div id="form-error" class="error-display"></div>
+            <div id="form-success" class="success-display"></div>
+            <div id="form-code" class="code-display"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Summary</h3>
+            <div id="test-summary">
+                <p><strong>Key Improvements Demonstrated:</strong></p>
+                <ul>
+                    <li>✅ Explicit null and undefined value detection</li>
+                    <li>✅ Clear, user-friendly error messages</li>
+                    <li>✅ Type validation with descriptive feedback</li>
+                    <li>✅ Empty string and whitespace-only input handling</li>
+                    <li>✅ Graceful degradation - no crashes or exceptions</li>
+                    <li>✅ Consistent error reporting across all validation functions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Validation functions (mimicking the enhanced backend validation)
+        function validateEmailDetailed(email) {
+            const errors = [];
+            
+            if (email === null) {
+                errors.push('Email cannot be null');
+                return { isValid: false, errors };
+            }
+            
+            if (email === undefined) {
+                errors.push('Email is required and cannot be undefined');
+                return { isValid: false, errors };
+            }
+            
+            if (!email) {
+                errors.push('Email is required');
+                return { isValid: false, errors };
+            }
+            
+            if (typeof email !== 'string') {
+                errors.push(`Email must be a string, received ${typeof email}`);
+                return { isValid: false, errors };
+            }
+            
+            const trimmedEmail = email.trim();
+            
+            if (trimmedEmail.length === 0) {
+                errors.push('Email cannot be empty or contain only whitespace');
+                return { isValid: false, errors };
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(trimmedEmail)) {
+                errors.push('Email format is invalid');
+            }
+            
+            return { 
+                isValid: errors.length === 0, 
+                errors 
+            };
+        }
+
+        function validatePasswordDetailed(password) {
+            const errors = [];
+            
+            if (password === null) {
+                errors.push('Password cannot be null');
+                return { isValid: false, errors };
+            }
+            
+            if (password === undefined) {
+                errors.push('Password is required and cannot be undefined');
+                return { isValid: false, errors };
+            }
+            
+            if (!password) {
+                errors.push('Password is required');
+                return { isValid: false, errors };
+            }
+            
+            if (typeof password !== 'string') {
+                errors.push(`Password must be a string, received ${typeof password}`);
+                return { isValid: false, errors };
+            }
+            
+            if (password.length < 8) {
+                errors.push('Password must be at least 8 characters long');
+            }
+            
+            return { 
+                isValid: errors.length === 0, 
+                errors 
+            };
+        }
+
+        function validateName(name, fieldName = 'Name') {
+            const errors = [];
+            
+            if (name === null) {
+                errors.push(`${fieldName} cannot be null`);
+                return { isValid: false, errors };
+            }
+            
+            if (name === undefined) {
+                errors.push(`${fieldName} is required and cannot be undefined`);
+                return { isValid: false, errors };
+            }
+            
+            if (!name) {
+                errors.push(`${fieldName} is required`);
+                return { isValid: false, errors };
+            }
+            
+            if (typeof name !== 'string') {
+                errors.push(`${fieldName} must be a string, received ${typeof name}`);
+                return { isValid: false, errors };
+            }
+            
+            const trimmedName = name.trim();
+            
+            if (trimmedName.length === 0) {
+                errors.push(`${fieldName} cannot be empty or contain only whitespace`);
+                return { isValid: false, errors };
+            }
+            
+            if (trimmedName.length < 2) {
+                errors.push(`${fieldName} must be at least 2 characters long`);
+            }
+            
+            return { 
+                isValid: errors.length === 0, 
+                errors 
+            };
+        }
+
+        // Test functions
+        function testEmail(emailValue) {
+            const result = validateEmailDetailed(emailValue);
+            displayResult('email', emailValue, result);
+        }
+
+        function testPassword(passwordValue) {
+            const result = validatePasswordDetailed(passwordValue);
+            displayResult('password', passwordValue, result);
+        }
+
+        function testName(nameValue) {
+            const result = validateName(nameValue, 'First name');
+            displayResult('name', nameValue, result);
+        }
+
+        function testCompleteForm(testType) {
+            let formData;
+            
+            switch(testType) {
+                case 'null':
+                    formData = { email: null, password: null, firstName: null, lastName: null };
+                    break;
+                case 'undefined':
+                    formData = { email: undefined, password: undefined, firstName: undefined, lastName: undefined };
+                    break;
+                case 'empty':
+                    formData = { email: '', password: '', firstName: '', lastName: '' };
+                    break;
+                case 'mixed':
+                    formData = { email: 123, password: {}, firstName: [], lastName: true };
+                    break;
+                case 'valid':
+                    formData = { email: 'user@example.com', password: 'ValidPassword123!', firstName: 'John', lastName: 'Doe' };
+                    break;
+            }
+            
+            // Validate all fields
+            const emailResult = validateEmailDetailed(formData.email);
+            const passwordResult = validatePasswordDetailed(formData.password);
+            const firstNameResult = validateName(formData.firstName, 'First name');
+            const lastNameResult = validateName(formData.lastName, 'Last name');
+            
+            const allErrors = [
+                ...emailResult.errors,
+                ...passwordResult.errors,
+                ...firstNameResult.errors,
+                ...lastNameResult.errors
+            ];
+            
+            const isValid = allErrors.length === 0;
+            
+            displayResult('form', formData, { isValid, errors: allErrors });
+        }
+
+        function displayResult(type, inputValue, result) {
+            const errorDiv = document.getElementById(`${type}-error`);
+            const successDiv = document.getElementById(`${type}-success`);
+            const codeDiv = document.getElementById(`${type}-code`);
+            
+            // Hide both displays first
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // Display input value
+            let valueDisplay = '';
+            if (inputValue === null) {
+                valueDisplay = 'null';
+            } else if (inputValue === undefined) {
+                valueDisplay = 'undefined';
+            } else if (typeof inputValue === 'string' && inputValue === '') {
+                valueDisplay = 'empty string ""';
+            } else if (typeof inputValue === 'object') {
+                valueDisplay = JSON.stringify(inputValue);
+            } else {
+                valueDisplay = String(inputValue);
+            }
+            
+            codeDiv.innerHTML = `Input: ${valueDisplay} (type: ${typeof inputValue})`;
+            
+            if (result.isValid) {
+                successDiv.innerHTML = `<strong>✅ Validation Passed!</strong><br>Input is valid and would be accepted.`;
+                successDiv.style.display = 'block';
+            } else {
+                errorDiv.innerHTML = `<strong>🚫 Validation Failed:</strong><br>${result.errors.join('<br>')}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Show initial message
+        window.onload = function() {
+            document.getElementById('test-summary').innerHTML += `
+                <div style="background: #e0f2fe; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                    <p><strong>💡 How to test:</strong></p>
+                    <p>Click any red button to see how problematic inputs are handled gracefully with clear error messages. 
+                    Click green buttons to see valid inputs being accepted.</p>
+                    <p><strong>🎯 Before these improvements:</strong> Null inputs would cause crashes, unhelpful errors, or silent failures.</p>
+                    <p><strong>🛡️ After these improvements:</strong> All inputs are validated with clear, user-friendly error messages.</p>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>
