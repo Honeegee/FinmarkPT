@@ -68,7 +68,7 @@ Finmark Corporation's e-commerce platform prototype demonstrates a scalable, sec
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Pre-requisites
 - Node.js 18+ or bun
 - PostgreSQL database
 - Git
