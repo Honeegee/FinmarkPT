@@ -97,10 +97,12 @@ export default function LoginPage() {
 
       // Try API login first
       try {
+        const localState = localStorage.getItem('mock-2fa-enabled') === 'true';
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-2FA-Local-State': localState.toString()
           },
           body: JSON.stringify({
             email: email.trim(),
@@ -119,6 +121,12 @@ export default function LoginPage() {
           localStorage.setItem('user', JSON.stringify(data.user));
           
           window.location.href = '/dashboard';
+          return;
+        } else if (response.ok && data.require2FA) {
+          // 2FA required - show 2FA prompt
+          setShow2FA(true);
+          setError('');
+          setLoading(false);
           return;
         } else {
           // Handle API errors

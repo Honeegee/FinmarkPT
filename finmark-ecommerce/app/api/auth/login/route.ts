@@ -148,6 +148,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if 2FA is enabled for this user and handle 2FA verification
+    const localState = request.headers.get('x-2fa-local-state');
+    const is2FAEnabled = localState === 'true';
+    
+    if (is2FAEnabled && !twoFactorCode && !backupCode) {
+      // 2FA is enabled but no 2FA code provided - request 2FA
+      return NextResponse.json(
+        {
+          require2FA: true,
+          message: 'Two-factor authentication required',
+          userId: user.id
+        },
+        { status: 200 }
+      );
+    }
+    
+    if (is2FAEnabled && (twoFactorCode || backupCode)) {
+      // Verify 2FA code (for prototype, accept any 6-digit code or any backup code)
+      if (twoFactorCode && (twoFactorCode.length !== 6 || !/^\d{6}$/.test(twoFactorCode))) {
+        return NextResponse.json(
+          {
+            error: 'Invalid 2FA code',
+            details: 'Please enter a valid 6-digit code',
+            code: 'INVALID_2FA_CODE'
+          },
+          { status: 401 }
+        );
+      }
+      
+      if (backupCode && (!backupCode || backupCode.trim().length === 0)) {
+        return NextResponse.json(
+          {
+            error: 'Invalid backup code',
+            details: 'Please enter a valid backup code',
+            code: 'INVALID_BACKUP_CODE'
+          },
+          { status: 401 }
+        );
+      }
+      
+      // For prototype: Accept any valid format (real implementation would verify against stored codes)
+      console.log(`🔐 2FA verification successful for user ${user.id}`);
+    }
+
     // Generate tokens with error handling
     let accessToken, refreshToken;
     try {
