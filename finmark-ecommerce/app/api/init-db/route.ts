@@ -47,6 +47,45 @@ export async function POST(request: NextRequest) {
       );
     `);
 
+    // Create 2FA table
+    await query(`
+      CREATE TABLE IF NOT EXISTS user_schema.user_2fa (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES user_schema.users(id) ON DELETE CASCADE,
+        secret VARCHAR(255) NOT NULL,
+        is_enabled BOOLEAN DEFAULT false,
+        backup_codes TEXT[],
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        enabled_at TIMESTAMP
+      );
+    `);
+
+    // Create login attempts table
+    await query(`
+      CREATE TABLE IF NOT EXISTS user_schema.login_attempts (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        ip_address INET NOT NULL,
+        user_agent TEXT,
+        success BOOLEAN NOT NULL,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        failure_reason VARCHAR(100)
+      );
+    `);
+
+    // Create security events table
+    await query(`
+      CREATE TABLE IF NOT EXISTS user_schema.security_events (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES user_schema.users(id),
+        event_type VARCHAR(100) NOT NULL,
+        ip_address INET,
+        user_agent TEXT,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create analytics events table
     await query(`
       CREATE TABLE IF NOT EXISTS analytics_schema.events (
