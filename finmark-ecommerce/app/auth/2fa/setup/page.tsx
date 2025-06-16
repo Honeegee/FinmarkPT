@@ -51,16 +51,8 @@ export default function TwoFactorSetupPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Check if using mock authentication
-      if (token && token.startsWith('mock-')) {
-        // Mock 2FA setup
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        setQrCode('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='); // 1x1 transparent PNG as placeholder
-        setSecret('DEMO2FASECRETKEY123456789ABCDEF');
-        setStep(2);
-        setLoading(false);
-        return;
-      }
+      // For prototype: Always use API endpoints with mock data
+      // This ensures consistent behavior regardless of token type
       
       const response = await fetch('/api/auth/2fa/setup', {
         method: 'POST',
@@ -100,21 +92,8 @@ export default function TwoFactorSetupPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Check if using mock authentication
-      if (token && token.startsWith('mock-')) {
-        // Mock enable 2FA
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        const mockBackupCodes = [
-          'ABC123', 'DEF456', 'GHI789', 'JKL012',
-          'MNO345', 'PQR678', 'STU901', 'VWX234'
-        ];
-        setBackupCodes(mockBackupCodes);
-        setSuccess('2FA enabled successfully! (Demo Mode)');
-        localStorage.setItem('mock-2fa-enabled', 'true');
-        setStep(3);
-        setLoading(false);
-        return;
-      }
+      // For prototype: Always use API endpoints
+      // localStorage will be set when API succeeds
       
       const response = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
