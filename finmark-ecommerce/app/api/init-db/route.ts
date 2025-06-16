@@ -3,10 +3,13 @@ import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if database is already initialized
-    const schemaCheck = await query('SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE \'%_schema\'');
+    // Check if database is already initialized by looking for our specific schemas
+    const schemaCheck = await query(`
+      SELECT schema_name FROM information_schema.schemata
+      WHERE schema_name IN ('user_schema', 'product_schema', 'analytics_schema')
+    `);
     
-    if (schemaCheck.rows.length > 0) {
+    if (schemaCheck.rows.length >= 3) {
       return NextResponse.json({
         message: 'Database already initialized',
         schemas: schemaCheck.rows.map(row => row.schema_name),
