@@ -1,38 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { getAuthFromRequest } from '@/lib/auth';
+import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
+    const authData = getAuthFromRequest(request);
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authData) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { message: 'No valid token provided' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
-    
+    // Fetch user data from database to ensure it's current
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      
-      // Return user data (in a real app, you'd fetch from database)
-      const user = {
-        id: decoded.userId,
-        email: decoded.email,
-        firstName: decoded.firstName || 'User',
-        lastName: decoded.lastName || '',
-        role: decoded.role || 'customer'
-      };
+      const result = await query(
+        'SELECT id, email, first_name, last_name, role FROM user_schema.users WHERE id = $1',
+        [authData.userId]
+      );
 
-      return NextResponse.json({ user });
-    } catch (jwtError) {
+      if (!result.rows || result.rows.length === 0) {
+        return NextResponse.json(
+          { message: 'User not found' },
+          { status: 401 }
+        );
+      }
+
+      const user = result.rows[0];
+      
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name || '',
+          lastName: user.last_name || '',
+          role: user.role || 'customer'
+        }
+      });
+    } catch (dbError) {
+      console.error('Database error during token verification:', dbError);
       return NextResponse.json(
-        { message: 'Invalid token' },
-        { status: 401 }
+        { message: 'Database error' },
+        { status: 500 }
       );
     }
   } catch (error) {
