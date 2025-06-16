@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
         },
         security: {
           twoFactor: twoFactorStatus,
-          recentLogins: recentLogins,
-          securityEvents: securityEvents
+          recentLogins: recentLogins || [],
+          securityEvents: securityEvents || []
         }
       });
 
