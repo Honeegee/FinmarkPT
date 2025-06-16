@@ -128,6 +128,8 @@ export default function TwoFactorSetupPage() {
       const data = await response.json();
       
       if (response.ok) {
+        // Set localStorage flag for prototype system
+        localStorage.setItem('mock-2fa-enabled', 'true');
         setBackupCodes(data.backupCodes);
         setSuccess('2FA enabled successfully!');
         setStep(3);

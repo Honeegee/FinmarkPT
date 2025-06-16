@@ -181,6 +181,8 @@ export default function SecurityDashboard() {
       const data = await response.json();
 
       if (response.ok) {
+        // Remove localStorage flag for prototype system
+        localStorage.removeItem('mock-2fa-enabled');
         setIs2FAEnabled(false);
         setShowDisableForm(false);
         setPassword('');
