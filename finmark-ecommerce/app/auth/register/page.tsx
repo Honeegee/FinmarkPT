@@ -239,6 +239,9 @@ export default function RegisterPage() {
           localStorage.setItem('refreshToken', data.tokens.refreshToken);
           localStorage.setItem('user', JSON.stringify(data.user));
           
+          // Ensure 2FA is disabled by default for new accounts
+          localStorage.removeItem('mock-2fa-enabled');
+          
           // Redirect to login page after successful registration
           setTimeout(() => {
             router.push('/auth/login');
@@ -309,6 +312,9 @@ export default function RegisterPage() {
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
         
         setSuccess(`Account created successfully! Welcome ${trimmedData.firstName} ${trimmedData.lastName} to Finmark.`);
+        
+        // Ensure 2FA is disabled by default for new accounts
+        localStorage.removeItem('mock-2fa-enabled');
         
         // Redirect to login page after successful registration
         setTimeout(() => {
