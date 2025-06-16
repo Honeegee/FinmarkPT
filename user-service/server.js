@@ -117,6 +117,22 @@ app.get('/api/security/status', (req, res) => {
   });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    service: 'FinMark User Service API',
+    version: '2.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth/*',
+      security: '/api/security/status'
+    },
+    documentation: 'https://github.com/Honeegee/FinmarkPT'
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
