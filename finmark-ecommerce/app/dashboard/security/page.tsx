@@ -59,8 +59,12 @@ export default function SecurityDashboard() {
         return;
       }
       
+      const localState = localStorage.getItem('mock-2fa-enabled') === 'true';
       const response = await fetch('/api/auth/2fa/status', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-2FA-Local-State': localState.toString()
+        }
       });
       
       if (response.ok) {

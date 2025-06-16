@@ -16,16 +16,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // For prototype: Always return false initially
-    // The frontend will handle enabling via localStorage
-    // In a real app, this would query the database for user's 2FA status
+    // For prototype: Check custom header for localStorage state
+    const localStorageState = request.headers.get('x-2fa-local-state');
+    const enabled = localStorageState === 'true';
+    
     const status = {
-      enabled: false,
-      setupDate: null,
-      enabledDate: null
+      enabled: enabled,
+      setupDate: enabled ? new Date().toISOString() : null,
+      enabledDate: enabled ? new Date().toISOString() : null
     };
     
-    console.log('🔐 2FA status returned:', status);
+    console.log('🔐 2FA status returned:', status, 'localStorage state:', localStorageState);
     return NextResponse.json(status);
   } catch (error) {
     console.error('🔐 2FA status check error:', error);
