@@ -80,11 +80,8 @@ export default function TwoFactorSetupPage() {
         setError(data.message || 'Failed to setup 2FA');
       }
     } catch (err) {
-      // Fallback to mock for demo purposes
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setQrCode('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==');
-      setSecret('DEMO2FASECRETKEY123456789ABCDEF');
-      setStep(2);
+      console.error('2FA setup API error:', err);
+      setError(`API Error: ${err instanceof Error ? err.message : 'Network error'}`);
     } finally {
       setLoading(false);
     }
@@ -138,16 +135,8 @@ export default function TwoFactorSetupPage() {
         setError(data.message || 'Invalid verification code');
       }
     } catch (err) {
-      // Fallback to mock for demo purposes
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockBackupCodes = [
-        'ABC123', 'DEF456', 'GHI789', 'JKL012',
-        'MNO345', 'PQR678', 'STU901', 'VWX234'
-      ];
-      setBackupCodes(mockBackupCodes);
-      setSuccess('2FA enabled successfully! (Demo Mode)');
-      localStorage.setItem('mock-2fa-enabled', 'true');
-      setStep(3);
+      console.error('2FA enable API error:', err);
+      setError(`API Error: ${err instanceof Error ? err.message : 'Network error'}`);
     } finally {
       setLoading(false);
     }
