@@ -42,21 +42,21 @@ export async function GET(request: NextRequest) {
 
       // Mock recent login attempts for prototype
       let recentLogins: Array<{
-        ipAddress: string;
-        userAgent: string;
-        timestamp: string;
+        ip_address: string;
+        user_agent: string;
+        attempted_at: string;
         success: boolean;
       }> = [
         {
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+          ip_address: '192.168.1.100',
+          user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          attempted_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
           success: true
         },
         {
-          ipAddress: '192.168.1.100',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          ip_address: '192.168.1.100',
+          user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          attempted_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
           success: true
         }
       ];
@@ -93,9 +93,15 @@ export async function GET(request: NextRequest) {
         },
         security: {
           twoFactor: twoFactorStatus,
-          recentLogins: recentLogins || [],
+          recentLoginAttempts: recentLogins || [],
           securityEvents: securityEvents || []
-        }
+        },
+        recommendations: [
+          {
+            priority: 'medium',
+            message: 'This is a demo environment. 2FA functionality is available for testing.'
+          }
+        ]
       });
 
     } catch (dbError) {
