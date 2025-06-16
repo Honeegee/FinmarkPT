@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
       const user = userResult.rows[0];
 
-      // Check 2FA status
+      // For prototype: Use mock data since database tables don't exist yet
       let twoFactorStatus: {
         enabled: boolean;
         setupDate: string | null;
@@ -40,75 +40,47 @@ export async function GET(request: NextRequest) {
         enabledDate: null
       };
 
-      try {
-        const twoFactorResult = await query(
-          'SELECT is_enabled, created_at, enabled_at FROM user_schema.user_2fa WHERE user_id = $1',
-          [authData.userId]
-        );
-
-        if (twoFactorResult.rows && twoFactorResult.rows.length > 0) {
-          const twoFactor = twoFactorResult.rows[0];
-          twoFactorStatus = {
-            enabled: Boolean(twoFactor.is_enabled),
-            setupDate: twoFactor.created_at,
-            enabledDate: twoFactor.enabled_at
-          };
-        }
-      } catch (twoFactorError) {
-        console.warn('Could not fetch 2FA status:', twoFactorError);
-      }
-
-      // Get recent login attempts
+      // Mock recent login attempts for prototype
       let recentLogins: Array<{
         ipAddress: string;
         userAgent: string;
         timestamp: string;
         success: boolean;
-      }> = [];
-
-      try {
-        const loginResult = await query(
-          'SELECT ip_address, user_agent, attempted_at, success FROM user_schema.login_attempts WHERE email = $1 ORDER BY attempted_at DESC LIMIT 5',
-          [user.email]
-        );
-
-        if (loginResult.rows) {
-          recentLogins = loginResult.rows.map(login => ({
-            ipAddress: login.ip_address,
-            userAgent: login.user_agent,
-            timestamp: login.attempted_at,
-            success: Boolean(login.success)
-          }));
+      }> = [
+        {
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+          success: true
+        },
+        {
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          success: true
         }
-      } catch (loginError) {
-        console.warn('Could not fetch recent login attempts:', loginError);
-      }
+      ];
 
-      // Get security events
+      // Mock security events for prototype
       let securityEvents: Array<{
         type: string;
         ipAddress: string;
         userAgent: string;
         timestamp: string;
-      }> = [];
-
-      try {
-        const eventsResult = await query(
-          'SELECT event_type, ip_address, user_agent, created_at FROM user_schema.security_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10',
-          [authData.userId]
-        );
-
-        if (eventsResult.rows) {
-          securityEvents = eventsResult.rows.map(event => ({
-            type: event.event_type,
-            ipAddress: event.ip_address,
-            userAgent: event.user_agent,
-            timestamp: event.created_at
-          }));
+      }> = [
+        {
+          type: 'login',
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString()
+        },
+        {
+          type: 'password_change',
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
         }
-      } catch (eventsError) {
-        console.warn('Could not fetch security events:', eventsError);
-      }
+      ];
 
       return NextResponse.json({
         user: {
