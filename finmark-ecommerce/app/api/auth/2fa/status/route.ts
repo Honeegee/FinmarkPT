@@ -12,16 +12,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // For prototype: Check if mock 2FA is enabled
-    // In a real app, this would query the database
-    const mockEnabled = typeof window !== 'undefined'
-      ? localStorage.getItem('mock-2fa-enabled') === 'true'
-      : false;
-
+    // For prototype: Always return false initially
+    // The frontend will handle enabling via localStorage
+    // In a real app, this would query the database for user's 2FA status
     return NextResponse.json({
-      enabled: mockEnabled,
-      setupDate: mockEnabled ? new Date().toISOString() : null,
-      enabledDate: mockEnabled ? new Date().toISOString() : null
+      enabled: false,
+      setupDate: null,
+      enabledDate: null
     });
   } catch (error) {
     console.error('2FA status check error:', error);
