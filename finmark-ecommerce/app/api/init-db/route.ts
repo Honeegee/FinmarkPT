@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
-export async function POST(request: NextRequest) {
+async function initializeDatabase() {
   try {
     // Check if database is already initialized by looking for our specific schemas
     const schemaCheck = await query(`
@@ -30,14 +30,17 @@ export async function POST(request: NextRequest) {
     await query('CREATE SCHEMA IF NOT EXISTS analytics_schema;');
     await query('CREATE SCHEMA IF NOT EXISTS shared_schema;');
 
-    // Create users table
+    // Create users table with Google OAuth support
     await query(`
       CREATE TABLE IF NOT EXISTS user_schema.users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255),
         first_name VARCHAR(100),
         last_name VARCHAR(100),
+        name VARCHAR(200),
+        profile_picture TEXT,
+        google_id VARCHAR(255),
         role VARCHAR(50) DEFAULT 'customer',
         is_active BOOLEAN DEFAULT true,
         email_verified BOOLEAN DEFAULT false,
@@ -129,4 +132,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  return initializeDatabase();
+}
+
+export async function GET(request: NextRequest) {
+  return initializeDatabase();
 }

@@ -1,0 +1,43 @@
+# RENDER ENVIRONMENT VARIABLES - COPY THESE TO YOUR RENDER DASHBOARD
+# Go to: https://dashboard.render.com → Your Service → Environment Tab
+
+# ===== AUTHENTICATION SECRETS =====
+JWT_SECRET=pO2N4exfddEyUZW/D4NateuAShgmfgC/IfPESTKYf4Y=
+JWT_REFRESH_SECRET=twVdDjIAGl+PreJkKWvRfc2EaSOaZnoveU7M46PmTak=
+NEXTAUTH_SECRET=BZpDUg88+KOBBwuKeMT7tc31ta8enWw7syVMkJlE6aU=
+
+# ===== GOOGLE OAUTH (PRODUCTION) =====
+# IMPORTANT: You need to create NEW Google OAuth credentials for production
+# Current values are for localhost only - they won't work in production
+# 
+# Steps to create production OAuth:
+# 1. Go to: https://console.cloud.google.com/
+# 2. Create new OAuth 2.0 Client ID
+# 3. Add authorized origins: https://your-render-app-url.onrender.com
+# 4. Add callback URL: https://your-render-app-url.onrender.com/api/auth/google/callback
+# 5. Replace these values with your production credentials:
+
+GOOGLE_CLIENT_ID=YOUR_PRODUCTION_GOOGLE_CLIENT_ID_HERE
+GOOGLE_CLIENT_SECRET=YOUR_PRODUCTION_GOOGLE_CLIENT_SECRET_HERE
+
+# ===== APPLICATION URLS =====
+# Replace with your actual Render app URL
+NEXTAUTH_URL=https://your-render-app-url.onrender.com
+
+# ===== QUICK SETUP STEPS =====
+# 1. Go to Render Dashboard
+# 2. Click your service → Environment tab
+# 3. Add each variable above (Key = Value)
+# 4. Click "Manual Deploy" to restart with new variables
+# 5. Test: https://your-app-url.onrender.com/api/auth/verify
+
+# ===== CRITICAL: RUN DATABASE MIGRATION IN PRODUCTION =====
+# After configuring environment variables and deploying:
+# 1. Visit: https://your-render-app-url.onrender.com/api/migrate/google-oauth
+# 2. You should see: {"message": "Google OAuth migration completed successfully"}
+# 3. This adds the required database columns: name, profile_picture, google_id
+# 4. Without this migration, Google OAuth will fail in production
+
+# ===== AFTER MIGRATION =====
+# Test Google login on your production site
+# The /api/auth/verify endpoint should now work correctly
