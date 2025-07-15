@@ -145,7 +145,12 @@ export default function LoginPage() {
             setLoading(false);
             return;
           } else if (data.error) {
-            setError(data.details || data.error);
+            // Handle specific database errors
+            if (data.code === 'DATABASE_ERROR') {
+              setError('Database connection failed. The system may need initialization. Please contact support or try again later.');
+            } else {
+              setError(data.details || data.error);
+            }
             setLoading(false);
             return;
           }
