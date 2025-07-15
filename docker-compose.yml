@@ -56,6 +56,10 @@ services:
       - DB_PASSWORD=password
       - JWT_SECRET=finmark-super-secret-key-2024
       - JWT_REFRESH_SECRET=finmark-refresh-secret-key-2024
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-nextauth-secret-key
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     depends_on:
       postgresql:
         condition: service_healthy

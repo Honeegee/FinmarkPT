@@ -36,9 +36,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Verify token and get user data
       verifyToken(token);
     } else {
+      // If no localStorage token, check if we have cookie-based auth (OAuth)
+      checkCookieAuth();
+    }
+
+    // Listen for auth state changes (triggered by OAuth success page)
+    const handleAuthStateChange = () => {
+      checkCookieAuth();
+    };
+
+    window.addEventListener('auth-state-changed', handleAuthStateChange);
+    
+    return () => {
+      window.removeEventListener('auth-state-changed', handleAuthStateChange);
+    };
+  }, []);
+
+  const checkCookieAuth = async () => {
+    try {
+      // Try to verify using cookies (for OAuth flow)
+      const response = await fetch('/api/auth/verify', {
+        method: 'GET',
+        credentials: 'include', // Include cookies
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData.user);
+      }
+    } catch (error) {
+      console.error('Cookie auth check failed:', error);
+    } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   const verifyToken = async (token: string) => {
     try {
@@ -127,9 +158,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Also clear server-side cookies for OAuth users
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Failed to clear server cookies:', error);
+    }
+    
     setUser(null);
   };
 

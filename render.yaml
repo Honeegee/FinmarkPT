@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: finmark-ecommerce
+    env: docker
+    dockerfilePath: ./finmark-ecommerce/Dockerfile
+    dockerContext: ./finmark-ecommerce
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: ""
+    startCommand: ""
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finmark-postgres
+          property: connectionString
+      - key: DB_HOST
+        fromDatabase:
+          name: finmark-postgres
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: finmark-postgres
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: finmark-postgres
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: finmark-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: finmark-postgres
+          property: password
+      - key: NEXTAUTH_URL
+        value: https://finmark-ecommerce.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+databases:
+  - name: finmark-postgres
+    databaseName: finmark_ecommerce
+    user: finmark_user
+    plan: starter
+    region: oregon
+    postgresMajorVersion: 15

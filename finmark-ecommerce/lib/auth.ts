@@ -10,10 +10,12 @@ const ACCESS_TOKEN_EXPIRES_IN = '15m';
 const REFRESH_TOKEN_EXPIRES_IN = '24h';
 
 export interface JWTPayload {
-  userId: number;
+  userId: number | string;
   email: string;
   role: string;
   clientId: number;
+  name?: string;
+  profilePicture?: string;
 }
 
 // Hash password
@@ -65,14 +67,27 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
 
 // Middleware to verify authentication
 export function getAuthFromRequest(request: NextRequest): JWTPayload | null {
+  // First try to get token from Authorization header
   const authHeader = request.headers.get('authorization');
-  const token = extractTokenFromHeader(authHeader);
+  let token = extractTokenFromHeader(authHeader);
+  console.log('Token from header:', token ? 'Found' : 'Not found');
+  
+  // If no token in header, try to get from cookies (for OAuth flow)
+  if (!token) {
+    token = request.cookies.get('accessToken')?.value || null;
+    console.log('Token from cookies:', token ? 'Found' : 'Not found');
+  }
   
   if (!token) {
+    console.log('No token found in header or cookies');
     return null;
   }
   
-  return verifyAccessToken(token);
+  console.log('Verifying token...');
+  const payload = verifyAccessToken(token);
+  console.log('Token verification result:', payload ? 'Valid' : 'Invalid');
+  
+  return payload;
 }
 
 // Password validation

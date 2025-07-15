@@ -18,9 +18,12 @@ ALTER DATABASE finmark_ecommerce SET search_path TO user_schema,product_schema,c
 CREATE TABLE IF NOT EXISTS user_schema.users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
+    name VARCHAR(200),
+    google_id VARCHAR(255) UNIQUE,
+    profile_picture VARCHAR(500),
     role VARCHAR(50) DEFAULT 'customer',
     is_active BOOLEAN DEFAULT true,
     email_verified BOOLEAN DEFAULT false,
@@ -160,6 +163,7 @@ CREATE TABLE IF NOT EXISTS analytics_schema.events (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON user_schema.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON user_schema.users(google_id);
 CREATE INDEX IF NOT EXISTS idx_products_category ON product_schema.products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_active ON product_schema.products(is_active);
 CREATE INDEX IF NOT EXISTS idx_cart_user ON cart_schema.carts(user_id);
