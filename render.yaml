@@ -54,8 +54,8 @@ services:
 
 databases:
   - name: finmark-postgres
-    databaseName: finmark_ecommerce
-    user: finmark_user
+    databaseName: finmark_db
+    user: finmark_db_user
     plan: starter
     region: oregon
     postgresMajorVersion: 15
